@@ -5,6 +5,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.net.URL; // For loading resources like images
 import java.sql.*;
+import java.text.NumberFormat; // For currency formatting
+import java.text.SimpleDateFormat; // For date formatting
+import java.util.Date; // For current date/time
+import java.util.concurrent.atomic.AtomicReference; // To hold last transaction data safely for lambda
 
 public class BankingSystem extends JFrame {
 
@@ -21,16 +25,31 @@ public class BankingSystem extends JFrame {
     private static final Font TEXT_FIELD_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     private static final Font BUTTON_FONT = new Font("Segoe UI", Font.BOLD, 14);
     private static final Font HEADER_FONT = new Font("Segoe UI", Font.BOLD, 24);
-
-    // --- Panels ---
-    // No need to declare them as instance variables if only created/used locally
-    // JPanel customerRegistrationPanel, openAccountPanel, adminLoginPanel, transactionPanel, loanApplicationPanel, emiPaymentPanel, complaintPanel, fixedDepositPanel;
+    private static final Font RECEIPT_FONT = new Font("Monospaced", Font.PLAIN, 12); // Font for receipt
 
     // --- Database Credentials (Replace with your actual details) ---
     private static final String DB_URL = "jdbc:mysql://localhost:3306/BankingLoanSystem";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "Ajit@2002"; // Replace with your password
 
+
+    // --- Class to hold receipt data ---
+    // Using a simple class makes passing data cleaner
+    private static class ReceiptData {
+        int accountId;
+        String transactionType;
+        double amount;
+        double newBalance;
+        Date transactionDate;
+
+        ReceiptData(int accountId, String transactionType, double amount, double newBalance, Date transactionDate) {
+            this.accountId = accountId;
+            this.transactionType = transactionType;
+            this.amount = amount;
+            this.newBalance = newBalance;
+            this.transactionDate = transactionDate;
+        }
+    }
 
     // Constructor
     public BankingSystem() {
@@ -51,12 +70,10 @@ public class BankingSystem extends JFrame {
 
 
         // --- Add Tabs with Icons (Placeholders) ---
-        // You would replace "[ICON]" with actual ImageIcons
-        // Example: new ImageIcon(getClass().getResource("/icons/customer.png"))
         tabbedPane.addTab("<html><body style='padding: 5px;'>Customer Registration</body></html>", null, createCustomerRegistrationPanel(), "Register a new customer");
         tabbedPane.addTab("<html><body style='padding: 5px;'>Open Account</body></html>", null, createOpenAccountPanel(), "Open a new bank account");
         tabbedPane.addTab("<html><body style='padding: 5px;'>Admin Login</body></html>", null, createAdminLoginPanel(), "Administrator login");
-        tabbedPane.addTab("<html><body style='padding: 5px;'>Deposit/Withdraw</body></html>", null, createTransactionPanel(), "Perform account transactions");
+        tabbedPane.addTab("<html><body style='padding: 5px;'>Deposit/Withdraw</body></html>", null, createTransactionPanel(), "Perform account transactions"); // <-- Calls the modified method
         tabbedPane.addTab("<html><body style='padding: 5px;'>Loan Application</body></html>", null, createLoanApplicationPanel(), "Apply for a new loan");
         tabbedPane.addTab("<html><body style='padding: 5px;'>EMI Payment</body></html>", null, createEmiPaymentPanel(), "Pay loan installments");
         tabbedPane.addTab("<html><body style='padding: 5px;'>Complaint Registration</body></html>", null, createComplaintPanel(), "Register a customer complaint");
@@ -140,23 +157,10 @@ public class BankingSystem extends JFrame {
         headerPanel.setBackground(PRIMARY_COLOR);
         headerPanel.setBorder(new EmptyBorder(10, 15, 10, 15)); // Padding
 
-//        // --- Logo Placeholder ---
-//        // Replace with actual ImageIcon loaded from a file/resource
-//        ImageIcon logoIcon = new ImageIcon(getClass().getResource("/images/logo.png"));
-//        JLabel logoLabel = new JLabel(logoIcon);
-//        logoLabel = new JLabel(" [LOGO] "); // Placeholder
-//        logoLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-//        logoLabel.setForeground(Color.WHITE);
-//        headerPanel.add(logoLabel, BorderLayout.WEST);
-
-        // --- Title ---
         JLabel titleLabel = new JLabel("ABC Bank", SwingConstants.CENTER);
         titleLabel.setFont(HEADER_FONT);
         titleLabel.setForeground(Color.WHITE);
         headerPanel.add(titleLabel, BorderLayout.CENTER);
-
-        // Add a dummy component on the right to balance the layout
-//        headerPanel.add(Box.createHorizontalStrut(logoLabel.getPreferredSize().width), BorderLayout.EAST);
 
         return headerPanel;
     }
@@ -168,7 +172,7 @@ public class BankingSystem extends JFrame {
     }
 
 
-    // --- Create Customer Registration Panel ---
+    // --- Create Customer Registration Panel --- (Keep as is)
     private JPanel createCustomerRegistrationPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -213,7 +217,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Register Customer in the database
+    // Register Customer in the database (Keep as is)
     private void registerCustomer(JTextField nameField, JTextField addressField, JTextField phoneField, JTextField emailField) {
         String name = nameField.getText().trim();
         String address = addressField.getText().trim();
@@ -260,7 +264,7 @@ public class BankingSystem extends JFrame {
         }
     }
 
-    // Create Open Account Panel
+    // Create Open Account Panel (Keep as is)
     private JPanel createOpenAccountPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -291,8 +295,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-
-    // Open Account in the database
+    // Open Account in the database (Keep as is)
     private void openAccount(JTextField customerIdField, JTextField initialDepositField) {
         int customerId;
         double initialDeposit;
@@ -338,7 +341,7 @@ public class BankingSystem extends JFrame {
     }
 
 
-    // Create Admin Login Panel
+    // Create Admin Login Panel (Keep as is)
     private JPanel createAdminLoginPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -376,7 +379,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Admin Login in the system
+    // Admin Login in the system (Keep as is)
     private void adminLogin(JTextField usernameField, JPasswordField passwordField) {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
@@ -413,13 +416,17 @@ public class BankingSystem extends JFrame {
         }
     }
 
-    // Create Deposit/Withdraw Transaction Panel
+    // --- Create Deposit/Withdraw Transaction Panel --- MODIFIED ---
     private JPanel createTransactionPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.WEST;
+
+        // --- Store last successful transaction data for this panel instance ---
+        // Using AtomicReference to hold the ReceiptData object, making it effectively final for lambda access
+        final AtomicReference<ReceiptData> lastTransactionDataRef = new AtomicReference<>(null);
 
         // Account ID
         gbc.gridx = 0; gbc.gridy = 0;
@@ -444,20 +451,47 @@ public class BankingSystem extends JFrame {
         JTextField amountField = styleTextField(new JTextField());
         panel.add(amountField, gbc);
 
+        // --- Buttons Panel ---
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0)); // Centered buttons with spacing
+        buttonPanel.setBackground(BACKGROUND_COLOR); // Match panel background
+
         // Submit Button
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER; gbc.fill = GridBagConstraints.NONE;
         JButton transactionButton = styleButton(new JButton("Submit Transaction"));
-        transactionButton.addActionListener(e -> handleTransaction(accountIdField, amountField, transactionTypeBox));
-        panel.add(transactionButton, gbc);
+        transactionButton.addActionListener(e -> {
+            // Pass the AtomicReference to store the result
+            handleTransaction(accountIdField, amountField, transactionTypeBox, lastTransactionDataRef);
+        });
+        buttonPanel.add(transactionButton);
+
+        // --- Generate Receipt Button --- NEW ---
+        JButton receiptButton = styleButton(new JButton("Generate Receipt"));
+        receiptButton.setBackground(new Color(0, 120, 180)); // Slightly different color maybe?
+        receiptButton.addActionListener(e -> {
+            generateReceipt(lastTransactionDataRef.get()); // Pass the stored data
+            // Optionally clear the data after generating receipt to prevent re-printing without new transaction
+            // lastTransactionDataRef.set(null); // Uncomment if you want single-use receipt per transaction
+        });
+        buttonPanel.add(receiptButton);
+
+
+        // Add Button Panel to main panel
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; gbc.anchor = GridBagConstraints.CENTER; gbc.fill = GridBagConstraints.NONE; gbc.weighty = 1.0; // Push buttons down if space allows
+        gbc.anchor = GridBagConstraints.PAGE_END; // Anchor buttons towards the bottom
+        panel.add(buttonPanel, gbc);
+
 
         return panel;
     }
 
-    // Handle Deposit/Withdraw transaction
-    private void handleTransaction(JTextField accountIdField, JTextField amountField, JComboBox<String> transactionTypeBox) {
+
+    // --- Handle Deposit/Withdraw transaction --- MODIFIED ---
+    private void handleTransaction(JTextField accountIdField, JTextField amountField, JComboBox<String> transactionTypeBox, AtomicReference<ReceiptData> lastTransactionDataRef) {
         int accountId;
         double amount;
         String transactionType = transactionTypeBox.getSelectedItem().toString();
+
+        // --- Clear previous transaction data before starting a new one ---
+        lastTransactionDataRef.set(null);
 
         try {
             accountId = Integer.parseInt(accountIdField.getText().trim());
@@ -472,11 +506,13 @@ public class BankingSystem extends JFrame {
         }
 
         Connection con = null;
+        double newBalance = -1; // Initialize to invalid value
+
         try {
             con = getConnection();
             con.setAutoCommit(false); // Start transaction
 
-            // Check current balance
+            // 1. Check current balance and account existence
             String checkQuery = "SELECT Balance FROM Account WHERE AccountID = ? FOR UPDATE"; // Lock row
             PreparedStatement pstCheck = con.prepareStatement(checkQuery);
             pstCheck.setInt(1, accountId);
@@ -485,23 +521,27 @@ public class BankingSystem extends JFrame {
             if (!rs.next()) {
                 JOptionPane.showMessageDialog(this, "❌ Account not found.", "Transaction Error", JOptionPane.ERROR_MESSAGE);
                 con.rollback();
-                return;
+                rs.close(); // Close ResultSet
+                pstCheck.close(); // Close PreparedStatement
+                return; // Stop processing
             }
             double currentBalance = rs.getDouble("Balance");
             rs.close();
             pstCheck.close();
 
-            // Perform transaction
+            // 2. Perform transaction logic
             String updateQuery;
             if (transactionType.equals("Deposit")) {
                 updateQuery = "UPDATE Account SET Balance = Balance + ? WHERE AccountID = ?";
+                newBalance = currentBalance + amount;
             } else { // Withdraw
                 if (currentBalance < amount) {
                     JOptionPane.showMessageDialog(this, "❌ Insufficient balance for withdrawal.", "Transaction Error", JOptionPane.WARNING_MESSAGE);
                     con.rollback();
-                    return;
+                    return; // Stop processing
                 }
                 updateQuery = "UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?";
+                newBalance = currentBalance - amount;
             }
 
             PreparedStatement pstUpdate = con.prepareStatement(updateQuery);
@@ -509,18 +549,35 @@ public class BankingSystem extends JFrame {
             pstUpdate.setInt(2, accountId);
 
             int result = pstUpdate.executeUpdate();
+            pstUpdate.close();
 
             if (result > 0) {
-                // Optional: Log the transaction in a separate Transactions table
+                // Optional: Log the transaction in a separate Transactions table (Good Practice)
+                // String logQuery = "INSERT INTO Transactions (AccountID, Type, Amount, TransactionDate, NewBalance) VALUES (?, ?, ?, NOW(), ?)";
+                // PreparedStatement pstLog = con.prepareStatement(logQuery);
+                // pstLog.setInt(1, accountId);
+                // pstLog.setString(2, transactionType);
+                // pstLog.setDouble(3, amount);
+                // pstLog.setDouble(4, newBalance);
+                // pstLog.executeUpdate();
+                // pstLog.close();
+
                 con.commit(); // Commit transaction
+
+                // --- Store data for receipt generation ---
+                Date transactionDate = new Date(); // Capture current time
+                lastTransactionDataRef.set(new ReceiptData(accountId, transactionType, amount, newBalance, transactionDate));
+
                 JOptionPane.showMessageDialog(this, "✅ Transaction Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                // Clear fields AFTER successful transaction and storing data
                 accountIdField.setText("");
                 amountField.setText("");
+
             } else {
                 con.rollback(); // Rollback if update failed unexpectedly
                 JOptionPane.showMessageDialog(this, "❌ Transaction Failed. Please try again.", "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-            pstUpdate.close();
+
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -531,8 +588,51 @@ public class BankingSystem extends JFrame {
         }
     }
 
+    // --- Method to Generate and Display Receipt --- NEW ---
+    private void generateReceipt(ReceiptData data) {
+        if (data == null) {
+            JOptionPane.showMessageDialog(this,
+                    "⚠️ Error: No successful transaction has been recorded yet.\nPlease complete a deposit or withdrawal first.",
+                    "Receipt Generation Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
-    // Create Loan Application Panel
+        // Formatters for currency and date
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(); // Uses default locale
+        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        // Build the receipt string
+        StringBuilder receiptText = new StringBuilder();
+        receiptText.append("----------------------------------------\n");
+        receiptText.append("        ABC Bank Transaction Receipt\n");
+        receiptText.append("----------------------------------------\n\n");
+        receiptText.append(String.format(" Date:          %s\n", dateFormatter.format(data.transactionDate)));
+        receiptText.append(String.format(" Account ID:    %d\n", data.accountId));
+        receiptText.append(String.format(" Transaction:   %s\n", data.transactionType));
+        receiptText.append(String.format(" Amount:        %s\n", currencyFormatter.format(data.amount)));
+        receiptText.append("----------------------------------------\n");
+        receiptText.append(String.format(" New Balance:   %s\n", currencyFormatter.format(data.newBalance)));
+        receiptText.append("----------------------------------------\n\n");
+        receiptText.append("       Thank you for banking with us!\n");
+        receiptText.append("----------------------------------------\n");
+
+        // Display the receipt in a non-editable text area within a dialog
+        JTextArea receiptArea = new JTextArea(receiptText.toString());
+        receiptArea.setFont(RECEIPT_FONT);
+        receiptArea.setEditable(false);
+        receiptArea.setBackground(Color.WHITE); // Or a slightly off-white color
+        receiptArea.setMargin(new Insets(10, 10, 10, 10));
+
+        // Use a scroll pane in case the receipt gets longer
+        JScrollPane scrollPane = new JScrollPane(receiptArea);
+        scrollPane.setPreferredSize(new Dimension(350, 250)); // Adjust size as needed
+
+        JOptionPane.showMessageDialog(this, scrollPane, "Transaction Receipt", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+
+    // Create Loan Application Panel (Keep as is)
     private JPanel createLoanApplicationPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -570,7 +670,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Apply for Loan in the database
+    // Apply for Loan in the database (Assumes DB columns exist)
     private void applyForLoan(JTextField accountIdLoanField, JTextField loanAmountField, JTextField loanTenureField) {
         int accountId;
         double loanAmount;
@@ -590,12 +690,12 @@ public class BankingSystem extends JFrame {
             return;
         }
 
-        // Assuming a LoanApplications table exists
+        // Assuming a LoanApplications table exists with ApplicationDate column
         String query = "INSERT INTO LoanApplications (AccountID, LoanAmount, Tenure, ApplicationDate, Status) VALUES (?, ?, ?, CURDATE(), 'Pending')";
         try (Connection con = getConnection();
              PreparedStatement pst = con.prepareStatement(query)) {
 
-            // Optional: Check if AccountID exists
+            // Optional: Check if AccountID exists in Account table first
 
             pst.setInt(1, accountId);
             pst.setDouble(2, loanAmount);
@@ -608,7 +708,8 @@ public class BankingSystem extends JFrame {
                 loanAmountField.setText("");
                 loanTenureField.setText("");
             } else {
-                JOptionPane.showMessageDialog(this, "❌ Loan Application Failed. Please check Account ID.", "Database Error", JOptionPane.ERROR_MESSAGE);
+                // This is less likely if the INSERT syntax is correct and AccountID is valid
+                JOptionPane.showMessageDialog(this, "❌ Loan Application Failed. Please check Account ID or contact support.", "Database Error", JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (SQLIntegrityConstraintViolationException ex) {
@@ -620,7 +721,7 @@ public class BankingSystem extends JFrame {
     }
 
 
-    // Create EMI Payment Panel
+    // Create EMI Payment Panel (Keep as is)
     private JPanel createEmiPaymentPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -651,7 +752,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Pay EMI
+    // Pay EMI (Keep as is - Assumes Loans table and LoanPayments logging)
     private void payEmi(JTextField loanIdField, JTextField emiAmountField) {
         int loanId; // Assuming you have a LoanID in your Loan table
         double emiAmount;
@@ -671,66 +772,79 @@ public class BankingSystem extends JFrame {
         // Assumption: You have a 'Loans' table with LoanID (PK), RemainingAmount, etc.
         // This query reduces the remaining amount. In a real system, you'd also record
         // the payment date, transaction ID, etc., likely in a LoanPayments table.
-        String query = "UPDATE Loans SET RemainingAmount = RemainingAmount - ? WHERE LoanID = ? AND RemainingAmount >= ?";
+        String updateLoanQuery = "UPDATE Loans SET RemainingAmount = RemainingAmount - ? WHERE LoanID = ? AND RemainingAmount >= ?";
+        // Optional: Add a query to log the payment in LoanPayments table
 
         Connection con = null;
+        PreparedStatement pstCheck = null;
+        PreparedStatement pstUpdate = null;
+        // PreparedStatement pstLog = null; // For payment logging
+        ResultSet rs = null;
+
         try {
             con = getConnection();
             con.setAutoCommit(false); // Transaction
 
-            // First, check if the loan exists and has sufficient balance
+            // 1. Check if the loan exists and lock the row
             String checkQuery = "SELECT RemainingAmount FROM Loans WHERE LoanID = ? FOR UPDATE";
-            PreparedStatement pstCheck = con.prepareStatement(checkQuery);
+            pstCheck = con.prepareStatement(checkQuery);
             pstCheck.setInt(1, loanId);
-            ResultSet rs = pstCheck.executeQuery();
+            rs = pstCheck.executeQuery();
 
             if (!rs.next()) {
                 JOptionPane.showMessageDialog(this, "❌ Loan ID not found.", "Payment Error", JOptionPane.ERROR_MESSAGE);
                 con.rollback();
                 return;
             }
+            // double remaining = rs.getDouble("RemainingAmount"); // Could check if emiAmount > remaining
+            rs.close(); // Close ResultSet early
+            pstCheck.close(); // Close Statement early
 
-            double remaining = rs.getDouble("RemainingAmount");
-            // Allow payment even if it's slightly more than remaining (final payment)
-            // Or add stricter check: if (emiAmount > remaining + some_tolerance) { error }
-
-
-            rs.close();
-            pstCheck.close();
-
-            // Now, perform the update
-            PreparedStatement pstUpdate = con.prepareStatement(query);
+            // 2. Perform the update
+            pstUpdate = con.prepareStatement(updateLoanQuery);
             pstUpdate.setDouble(1, emiAmount);
             pstUpdate.setInt(2, loanId);
-            pstUpdate.setDouble(3, 0); // Ensure we don't make remaining amount negative (though DB constraint is better)
+            pstUpdate.setDouble(3, 0); // Allow payment even if it makes balance 0, but not negative via this check
 
             int result = pstUpdate.executeUpdate();
+            pstUpdate.close(); // Close statement
 
             if (result > 0) {
-                // TODO: Log this payment in a LoanPayments table
-                con.commit();
+                // 3. Optional: Log this payment in a LoanPayments table
+                // String logQuery = "INSERT INTO LoanPayments (LoanID, PaymentAmount, PaymentDate) VALUES (?, ?, NOW())";
+                // pstLog = con.prepareStatement(logQuery);
+                // pstLog.setInt(1, loanId);
+                // pstLog.setDouble(2, emiAmount);
+                // pstLog.executeUpdate();
+                // pstLog.close();
+
+                con.commit(); // Commit only if update (and optional log) succeed
                 JOptionPane.showMessageDialog(this, "✅ EMI Payment Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
                 loanIdField.setText("");
                 emiAmountField.setText("");
             } else {
                 con.rollback();
-                // Could be due to loan not found again (race condition unlikely with FOR UPDATE)
-                // or remaining amount became zero/negative just before update
+                // Could be due to remaining amount being less than 0 already, or loan disappearing (unlikely with lock)
                 JOptionPane.showMessageDialog(this, "❌ EMI Payment Failed. Please check Loan ID or status.", "Payment Error", JOptionPane.ERROR_MESSAGE);
             }
-            pstUpdate.close();
+
 
         } catch (Exception ex) {
             ex.printStackTrace();
             try { if (con != null) con.rollback(); } catch (SQLException se) { se.printStackTrace(); }
             JOptionPane.showMessageDialog(this, "⚠️ Error during EMI payment: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
+            // Clean up resources in reverse order of creation
+            try { if (rs != null) rs.close(); } catch (SQLException se) { se.printStackTrace(); }
+            // try { if (pstLog != null) pstLog.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (pstUpdate != null) pstUpdate.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (pstCheck != null) pstCheck.close(); } catch (SQLException se) { se.printStackTrace(); }
             try { if (con != null) { con.setAutoCommit(true); con.close(); } } catch (SQLException se) { se.printStackTrace(); }
         }
     }
 
 
-    // Create Complaint Registration Panel
+    // Create Complaint Registration Panel (Keep as is)
     private JPanel createComplaintPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -766,7 +880,7 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Submit Complaint to the database
+    // Submit Complaint to the database (Keep as is)
     private void submitComplaint(JTextField accountIdField, JTextArea complaintArea) {
         String accountIdStr = accountIdField.getText().trim();
         String complaintText = complaintArea.getText().trim();
@@ -816,7 +930,7 @@ public class BankingSystem extends JFrame {
     }
 
 
-    // Panel for Fixed Deposit
+    // Panel for Fixed Deposit (Keep as is)
     private JPanel createFixedDepositPanel() {
         JPanel panel = createStyledPanel();
         panel.setLayout(new GridBagLayout());
@@ -855,12 +969,13 @@ public class BankingSystem extends JFrame {
         return panel;
     }
 
-    // Create Fixed Deposit
+    // Create Fixed Deposit -- **UPDATED** --
     private void createFixedDeposit(JTextField fixedDepositAccountIdField, JTextField fixedDepositAmountField, JTextField fixedDepositTenureField) {
         int accountId;
         double depositAmount;
         int tenure;
 
+        // Input validation
         try {
             accountId = Integer.parseInt(fixedDepositAccountIdField.getText().trim());
             depositAmount = Double.parseDouble(fixedDepositAmountField.getText().trim());
@@ -876,94 +991,109 @@ public class BankingSystem extends JFrame {
         }
 
         Connection con = null;
+        PreparedStatement pstCheck = null;
+        PreparedStatement pstUpdate = null;
+        PreparedStatement pstInsert = null;
+        ResultSet rs = null;
+
         // This requires a transaction: 1. Deduct from Account, 2. Insert into FixedDeposits
         try {
             con = getConnection();
             con.setAutoCommit(false); // Start transaction
 
             // 1. Check balance and deduct from source account
-            String checkQuery = "SELECT Balance FROM Account WHERE AccountID = ? FOR UPDATE";
-            PreparedStatement pstCheck = con.prepareStatement(checkQuery);
+            String checkQuery = "SELECT Balance FROM Account WHERE AccountID = ? FOR UPDATE"; // Lock row
+            pstCheck = con.prepareStatement(checkQuery);
             pstCheck.setInt(1, accountId);
-            ResultSet rs = pstCheck.executeQuery();
+            rs = pstCheck.executeQuery();
 
             if (!rs.next()) {
                 JOptionPane.showMessageDialog(this, "❌ Source Account not found.", "FD Error", JOptionPane.ERROR_MESSAGE);
                 con.rollback();
-                return;
+                return; // Exit early
             }
             double currentBalance = rs.getDouble("Balance");
             if (currentBalance < depositAmount) {
                 JOptionPane.showMessageDialog(this, "❌ Insufficient balance in source account.", "FD Error", JOptionPane.WARNING_MESSAGE);
                 con.rollback();
-                return;
+                return; // Exit early
             }
-            rs.close();
-            pstCheck.close();
+            rs.close(); // Close early
+            pstCheck.close(); // Close early
 
-            // Deduct amount
+            // Deduct amount from source account
             String updateQuery = "UPDATE Account SET Balance = Balance - ? WHERE AccountID = ?";
-            PreparedStatement pstUpdate = con.prepareStatement(updateQuery);
+            pstUpdate = con.prepareStatement(updateQuery);
             pstUpdate.setDouble(1, depositAmount);
             pstUpdate.setInt(2, accountId);
             int updateResult = pstUpdate.executeUpdate();
-            pstUpdate.close();
+            pstUpdate.close(); // Close early
 
             if (updateResult <= 0) {
+                // This might happen if the account was deleted between check and update (unlikely with FOR UPDATE)
                 JOptionPane.showMessageDialog(this, "❌ Failed to deduct amount from source account.", "FD Error", JOptionPane.ERROR_MESSAGE);
                 con.rollback();
-                return;
+                return; // Exit early
             }
 
             // 2. Insert into FixedDeposits table
-            // Assuming FixedDeposits table: FD_ID (auto), AccountID, PrincipalAmount, Tenure, InterestRate, StartDate, MaturityDate, Status
-            // InterestRate calculation would likely happen here based on amount/tenure rules
-            double interestRate = calculateInterestRate(depositAmount, tenure); // Example helper
-            String insertQuery = "INSERT INTO FixedDeposits (AccountID, PrincipalAmount, Tenure, InterestRate, StartDate, MaturityDate, Status) VALUES (?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), 'Active')";
-            PreparedStatement pstInsert = con.prepareStatement(insertQuery);
+            double interestRate = calculateInterestRate(depositAmount, tenure); // Calculate interest rate
+
+            // ***** THE CORRECTED QUERY *****
+            // Uses DepositAmount instead of PrincipalAmount, matching the error message
+            String insertQuery = "INSERT INTO FixedDeposits (AccountID, DepositAmount, Tenure, InterestRate, StartDate, MaturityDate, Status) VALUES (?, ?, ?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL ? MONTH), 'Active')";
+
+            pstInsert = con.prepareStatement(insertQuery);
             pstInsert.setInt(1, accountId);
-            pstInsert.setDouble(2, depositAmount);
+            pstInsert.setDouble(2, depositAmount); // Correctly maps to DepositAmount
             pstInsert.setInt(3, tenure);
             pstInsert.setDouble(4, interestRate); // Calculated rate
-            pstInsert.setInt(5, tenure); // For DATE_ADD interval
+            pstInsert.setInt(5, tenure); // For DATE_ADD interval calculation
 
             int insertResult = pstInsert.executeUpdate();
-            pstInsert.close();
+            pstInsert.close(); // Close early
 
 
             if (insertResult > 0) {
-                con.commit(); // Commit transaction
+                con.commit(); // Commit transaction ONLY if both update and insert succeed
                 JOptionPane.showMessageDialog(this, "✅ Fixed Deposit Created Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                // Clear fields on success
                 fixedDepositAccountIdField.setText("");
                 fixedDepositAmountField.setText("");
                 fixedDepositTenureField.setText("");
             } else {
-                con.rollback(); // Rollback if insert failed
-                JOptionPane.showMessageDialog(this, "❌ Fixed Deposit Creation Failed after deduction. Rolled back.", "Database Error", JOptionPane.ERROR_MESSAGE);
+                con.rollback(); // Rollback if insert failed for some reason
+                JOptionPane.showMessageDialog(this, "❌ Fixed Deposit Creation Failed after deduction. Operation rolled back.", "Database Error", JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            try { if (con != null) con.rollback(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (con != null) con.rollback(); } catch (SQLException se) { se.printStackTrace(); } // Attempt rollback on any error
             JOptionPane.showMessageDialog(this, "⚠️ Error creating Fixed Deposit: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
-            try { if (con != null) { con.setAutoCommit(true); con.close(); } } catch (SQLException se) { se.printStackTrace(); }
+            // Clean up resources in reverse order
+            try { if (rs != null) rs.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (pstInsert != null) pstInsert.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (pstUpdate != null) pstUpdate.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (pstCheck != null) pstCheck.close(); } catch (SQLException se) { se.printStackTrace(); }
+            try { if (con != null) { con.setAutoCommit(true); con.close(); } } catch (SQLException se) { se.printStackTrace(); } // Reset auto-commit and close connection
         }
     }
 
-    // Dummy interest rate calculation - replace with actual bank logic
+    // Dummy interest rate calculation (Keep as is)
     private double calculateInterestRate(double amount, int tenureMonths) {
+        // These rates are just examples, replace with actual bank logic
         if (tenureMonths < 6) return 3.0;
         if (tenureMonths < 12) return 4.5;
         if (tenureMonths < 24) return 5.5;
-        if (amount < 100000) return 6.0;
-        return 6.5; // Example rates
+        if (amount < 100000) return 6.0; // Example threshold
+        return 6.5; // Higher rate for longer term / larger amount
     }
 
 
-    // Main method
+    // Main method (Keep as is)
     public static void main(String[] args) {
-        // Set Look and Feel (Nimbus recommended)
+        // Set Look and Feel (Nimbus recommended for a modern look)
         try {
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -972,11 +1102,11 @@ public class BankingSystem extends JFrame {
                 }
             }
         } catch (Exception e) {
-            // If Nimbus is not available, fall back to the default
+            // If Nimbus is not available, fall back to the default System L&F
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ex) {
-                System.err.println("Failed to set LookAndFeel.");
+                System.err.println("Failed to set LookAndFeel: " + ex.getMessage());
             }
         }
 
